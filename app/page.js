@@ -2,7 +2,7 @@
 import Image from "next/image";
 import { useState, useEffect, forwardRef, useRef } from "react";
 import { firestore } from "@/firebase";
-import { Box, Button, Modal, Stack, TextField, Typography, AppBar, Toolbar} from "@mui/material";
+import { Box, Button, Modal, Stack, TextField, Typography, AppBar } from "@mui/material";
 import { Unstable_NumberInput as BaseNumberInput } from '@mui/base/Unstable_NumberInput';
 import { styled } from '@mui/system';
 import RemoveIcon from '@mui/icons-material/Remove';
@@ -11,7 +11,7 @@ import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
 import PhotoCameraIcon from '@mui/icons-material/PhotoCamera';
 import CameraEnhanceIcon from '@mui/icons-material/CameraEnhance';
 import FlipCameraIosIcon from '@mui/icons-material/FlipCameraIos';
-import { collection, query, getDocs, setDoc, doc, deleteDoc, getDoc, where} from "firebase/firestore";
+import { collection, query, getDocs, setDoc, doc, deleteDoc, getDoc } from "firebase/firestore";
 
 import Paper from '@mui/material/Paper';
 import Table from '@mui/material/Table';
@@ -24,7 +24,6 @@ import TableRow from '@mui/material/TableRow';
 
 import BeeHiveImg from "../assets/bee_hive_orange.png";
 import BeeHiveOutline from "../assets/bee_hive.png";
-import { Component } from "@/camera";
 import {Camera} from "react-camera-pro";
 import { orange } from "@mui/material/colors";
 
