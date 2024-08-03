@@ -2,7 +2,7 @@
 import Image from "next/image";
 import { useState, useEffect, forwardRef, useRef } from "react";
 import { firestore } from "@/firebase";
-import { Box, Button, Modal, Stack, TextField, Typography, AppBar } from "@mui/material";
+import { Box, Button, Modal, Stack, TextField, Typography, AppBar, InputAdornment } from "@mui/material";
 import { Unstable_NumberInput as BaseNumberInput } from '@mui/base/Unstable_NumberInput';
 import { styled } from '@mui/system';
 import RemoveIcon from '@mui/icons-material/Remove';
@@ -11,6 +11,7 @@ import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
 import PhotoCameraIcon from '@mui/icons-material/PhotoCamera';
 import CameraEnhanceIcon from '@mui/icons-material/CameraEnhance';
 import FlipCameraIosIcon from '@mui/icons-material/FlipCameraIos';
+import SearchIcon from '@mui/icons-material/Search';
 import { collection, query, getDocs, setDoc, doc, deleteDoc, getDoc } from "firebase/firestore";
 
 import Paper from '@mui/material/Paper';
@@ -48,7 +49,7 @@ export default function Home() {
 
   const camera = useRef(null);
   const [numberOfCameras, setNumberOfCameras] = useState(0);
-  const [image, setImage] = useState(null);
+  const [photo, setPhoto] = useState(null);
   const [openPhoto, setOpenPhoto] = useState(false);
 
   const handleChangePage = (event, newPage) => {
@@ -183,7 +184,7 @@ export default function Home() {
 
       {/* pop up window for changing inventory in batch */}
       <Modal open={openForm} onClose={handleCloseForm}>
-        <Box 
+        <StyledPopUP 
           position='absolute' 
           top='50%' 
           left='50%' 
@@ -241,12 +242,12 @@ export default function Home() {
             >
               Change
             </Button>
-        </Box>
+        </StyledPopUP>
       </Modal>
 
       {/* pop up window for camera */}
       <Modal open={openCamera} onClose={handleCloseCamera}>
-        <Box 
+        <StyledPopUP 
           position='absolute' 
           top='50%' 
           left='50%' 
@@ -270,32 +271,36 @@ export default function Home() {
               <Camera ref={camera} numberOfCamerasCallback={setNumberOfCameras} />
             </Box>
             <Stack direction='row' spacing={2} justifyContent='space-evenly'>
-              <Button variant='outlined' onClick={() => {
-                const photo = camera.current.takePhoto();
-                setImage(photo);
-                handleOpenPhoto();
-                handleCloseCamera();
+              <Button 
+                fullWidth
+                variant='outlined' 
+                onClick={() => {
+                  const itemPhoto = camera.current.takePhoto();
+                  setPhoto(itemPhoto);
+                  handleOpenPhoto();
+                  handleCloseCamera();
               }}
               sx={{px: 3}}> 
-                <CameraEnhanceIcon sx={{mr: 5}}/> Take a Photo
+                <CameraEnhanceIcon/> <StyledCameraText sx={{ml: 5}}>Take a Photo</StyledCameraText>
               </Button>
               <Button 
+                fullWidth
                 variant='outlined' 
                 disabled={numberOfCameras <= 1}
                 onClick={() => {
                 camera.current.switchCamera();
                 }}
                 sx={{px: 3}}> 
-                <FlipCameraIosIcon sx={{mr: 5}}/> Flip Camera
+                <FlipCameraIosIcon/> <StyledCameraText sx={{ml: 5}}>Flip Camera</StyledCameraText>
               </Button>
             </Stack>
           </Stack>
-        </Box>
+        </StyledPopUP>
       </Modal>
 
       {/* pop up window for showing the photo taken */}
       <Modal open={openPhoto} onClose={handleClosePhoto}>
-        <Box 
+        <StyledPopUP 
           position='absolute' 
           top='50%' 
           left='50%' 
@@ -306,8 +311,8 @@ export default function Home() {
           sx={{
             transform: 'translate(-50%, -50%)'
           }}>
-          <img src={image} alt='Image preview' />
-        </Box>
+          <img src={photo} alt='Photo preview' />
+        </StyledPopUP>
       </Modal>
       
       <AppBar 
@@ -318,7 +323,7 @@ export default function Home() {
               background: 'linear-gradient(to right, #000000, #feba07)'
             }} 
         style={{display: 'inline-block'}}>
-        <StyledImage src={BeeHiveOutline}/>
+        
         <Image src={BeeHiveImg} alt='site_logo' height={60} width={60} style={{marginTop: '10px'}}/>
         <Typography 
           variant="h2" 
@@ -328,6 +333,7 @@ export default function Home() {
             Hive.it
         </Typography>
         <Typography variant="p" color='#FFD700'>Inventory Management System</Typography>
+        <StyledImage src={BeeHiveOutline}/>
       </AppBar>
 
       <Box marginTop={20} width='80vw' alignItems={'center'} justifyContent={'center'} display={'flex'}>
@@ -345,27 +351,39 @@ export default function Home() {
             }
             setSearchName(e.target.value);
           }}
+          onKeyDown={(k) => {
+            if (k.key === 'Enter') {
+              searchInventory(searchName)
+            }
+          }}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon />
+              </InputAdornment>
+            ),
+          }}
         />
-        <Button variant='outlined' onClick={() => searchInventory(searchName)} sx={{ marginRight: 5}}>
-          Search
-        </Button>
+        {/* <Button variant='outlined' onClick={() => searchInventory(searchName)} sx={{ marginRight: 5}}>
+          <SearchIcon/>
+        </Button> */}
         <Button variant='outlined' onClick={() => handleOpenCamera()}>
           <PhotoCameraIcon />
         </Button>
       </Box>
 
-      <Paper sx={{ width: '80%', overflow: 'hidden'}} elevation={10}>
+      <StyledPaper sx={{ width: '80%', overflow: 'hidden'}} elevation={10}>
         <TableContainer sx={{ maxHeight: 440 }}>
           <Table stickyHeader aria-label="sticky table">
             <TableHead>
               <TableRow>
-                  <TableCell key='name' align="left" style={{ minWidth: 200 }}>
+                  <TableCell key='name' align="left" >
                     <Typography variant="h6" color='#333'>Item Name</Typography>
                   </TableCell>
-                  <TableCell key='count' align="center" style={{ minWidth: 200 }}>
+                  <TableCell key='count' align="center">
                     <Typography variant="h6" color='#333'>Count</Typography>
                   </TableCell>
-                  <TableCell key='action' align="right" style={{ minWidth: 200 }}>
+                  <TableCell key='action' align="right">
                     <Typography variant="h6" color='#333'>Actions</Typography>
                   </TableCell>
               </TableRow>
@@ -410,7 +428,7 @@ export default function Home() {
         onPageChange={handleChangePage}
         onRowsPerPageChange={handleChangeRowsPerPage}
       />
-    </Paper>
+    </StyledPaper>
 
       {/* <Box border='1px solid #333'>
         <Stack
@@ -462,14 +480,18 @@ export default function Home() {
 
       <Button
         variant="outlined"
-        // sx={{marginTop: 10}}
+        sx={{marginTop: 1}}
         // paddingX='10px'
         onClick={() => {
           handleOpenForm()
         }}
       >
-        Change Item Quantity
+        Update Inventory
       </Button>
+
+      <Box sx={{marginTop : '10%', bottom: 0}} bgcolor={orange[200]} display={'flex'} width={'100vw'} justifyContent='center'>
+        <Typography>Copyright © 2024 Weijia Xiao. All rights reserved.</Typography> 
+      </Box>
     </Box>
   );
 }
@@ -623,7 +645,7 @@ const StyledTableRow = styled(TableRow)(({ theme }) => ({
 
 const StyledTextField = styled(TextField)(({ theme }) => ({
   '&:hover fieldset' : {
-    borderColor: orange[500]
+    borderColor: orange[400]
   },
 
   '&:active fieldset' : {
@@ -631,24 +653,24 @@ const StyledTextField = styled(TextField)(({ theme }) => ({
   },
 
   '&:focus fieldset' : {
-    borderColor: orange[400],
+    borderColor: orange[200],
     boxShadow: "0 0 0 3px ${theme.palette.mode === 'dark' ? orange[700] : orange[200]}"
   }, 
   '& .MuiOutlinedInput-root': {
     '& fieldset': {
-      borderColor: orange[800], // Default border color
+      borderColor: orange[600], // Default border color
     },
     '&:hover fieldset': {
-      borderColor: orange[500], // Hover border color
+      borderColor: orange[400], // Hover border color
     },
     '&.Mui-focused fieldset': {
-      borderColor: orange[400], // Focused border color
+      borderColor: orange[200], // Focused border color
     },
   },
 }));
 
 // AppBar background image of bee hive outline
-const StyledImage = styled(Image)({
+const StyledImage = styled(Image)(({ theme }) => ({
   height: '100%',
   position: 'absolute',
   right: -10,
@@ -656,5 +678,32 @@ const StyledImage = styled(Image)({
   bottom: 0,
   objectFit: 'cover',
   pointerEvents: 'none',
-});
+  [theme.breakpoints.down("sm")]: {
+    display: "none",
+  }
+}));
+
+const StyledPopUP = styled(Box)(({ theme }) => ({
+  [theme.breakpoints.down("lg")]: {
+    width: '60vw',
+  },
+  [theme.breakpoints.down("md")]: {
+    width: '80vw',
+  },
+  [theme.breakpoints.down("sm")]: {
+    width: '100vw',
+  }
+}));
+
+const StyledPaper = styled(Paper)(({ theme }) => ({
+  [theme.breakpoints.down("sm")]: {
+    width: '100vw',
+  }
+}));
+
+const StyledCameraText = styled(Typography)(({ theme }) => ({
+  [theme.breakpoints.down("sm")]: {
+    display: 'none'
+  }
+}));
 
