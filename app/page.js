@@ -2,9 +2,11 @@
 import Image from "next/image";
 import { useState, useEffect, forwardRef, useRef } from "react";
 import { firestore } from "@/firebase";
-import { Box, Button, Modal, Stack, TextField, Typography, AppBar, InputAdornment } from "@mui/material";
+import { Box, Button, Modal, Stack, TextField, Typography, AppBar, InputAdornment, createTheme, ThemeProvider } from "@mui/material";
 import { Unstable_NumberInput as BaseNumberInput } from '@mui/base/Unstable_NumberInput';
 import { styled } from '@mui/system';
+import IconButton from '@mui/material/IconButton';
+
 import RemoveIcon from '@mui/icons-material/Remove';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
@@ -12,6 +14,9 @@ import PhotoCameraIcon from '@mui/icons-material/PhotoCamera';
 import CameraEnhanceIcon from '@mui/icons-material/CameraEnhance';
 import FlipCameraIosIcon from '@mui/icons-material/FlipCameraIos';
 import SearchIcon from '@mui/icons-material/Search';
+import FileUploadIcon from '@mui/icons-material/FileUpload';
+import HighlightOffIcon from '@mui/icons-material/HighlightOff';
+
 import { collection, query, getDocs, setDoc, doc, deleteDoc, getDoc } from "firebase/firestore";
 
 import Paper from '@mui/material/Paper';
@@ -27,6 +32,8 @@ import BeeHiveImg from "../assets/bee_hive_orange.png";
 import BeeHiveOutline from "../assets/bee_hive.png";
 import {Camera} from "react-camera-pro";
 import { orange } from "@mui/material/colors";
+
+import ReactFileReader from "react-file-reader";
 
 
 
@@ -129,7 +136,7 @@ export default function Home() {
     await updateInventory()
   }
 
-  const changeItemCount = async (item, count) => {
+  const updateItem = async (item, count, photo) => {
     const docRef = doc(collection(firestore, 'inventory'), item.toLowerCase())
     const docSnap = await getDoc(docRef)
 
@@ -137,13 +144,13 @@ export default function Home() {
       const {quantity} = docSnap.data()
       const total = quantity + count
       if (total > 0) {
-        await setDoc(docRef, {quantity: quantity + count})
+        await setDoc(docRef, {quantity: quantity + count, photo: photo})
       } else {
         await deleteDoc(docRef)
       }
     }
     else {
-      await setDoc(docRef, {quantity: count})
+      await setDoc(docRef, {quantity: count, photo: photo})
     }
     await updateInventory()
   }
@@ -168,6 +175,25 @@ export default function Home() {
   const handleOpenPhoto = () => setOpenPhoto(true)
   const handleClosePhoto = () => setOpenPhoto(false)
 
+  const handleFiles = (files) => {
+    // console.log(files['base64']);
+    // setUrl(files.base64);
+    // setPhoto(files[0]['name']);
+    // handleOpenPhoto();
+    // const reader = new FileReader();
+    // reader.onloadend = () => {
+    //   setPhoto(reader.result);
+    // };
+    // reader.readAsDataURL(files['base64']);
+    if (files && files.base64) {
+      setPhoto(files.base64);
+    }
+  };
+
+  const handleCancelFile = () => {
+    setPhoto(null);
+  };
+
 
   return (
     // justifyContent centers horizontally, alignItems centers vertically
@@ -190,18 +216,19 @@ export default function Home() {
           left='50%' 
           width='40%' 
           bgcolor='white' 
-          border='2px solid #000' 
+          border='5px solid #e8b40a' 
+          borderRadius={5}
           boxShadow={24} p={4} 
           display={'flex'} 
           flexDirection={'column'} 
           gap={3}
           sx={{
             transform: 'translate(-50%, -50%)'
-            }}>
-          <Typography variant="h6"> Add / Reudce an Item </Typography>
+          }}>
+          <Typography variant="h6"> Update Information of an Item </Typography>
           <Stack width='100%' direction='row' spacing={2} alignItems={'center'}>
             <Box width={200}>
-              <Typography variant="p"> Item Name : </Typography>
+              <Typography variant="p"> Item Name* : </Typography>
             </Box>
             
             <StyledTextField
@@ -230,18 +257,61 @@ export default function Home() {
               }}
             />
           </Stack>
-          <Button
-              variant="outlined"
-              disabled={itemName === ''}
-              onClick={()=>{
-                changeItemCount(itemName, itemCount)
-                setItemName('')
-                setItemCount(1)
-                handleCloseForm()
-              }}
-            >
-              Change
+          <Stack width='100%' direction='row' spacing={2} alignItems={'center'}>
+            <Box width={200}>
+              <Typography variant="p"> Item Photo : </Typography>
+            </Box>
+            <ThemeProvider theme={orange_theme}>
+              <Button color='primary' variant='outlined' onClick={() => handleOpenCamera()}>
+                <PhotoCameraIcon />
+              </Button>
+              <Typography variant='p' sx={{mx: '5px'}}> or </Typography> 
+              <ReactFileReader
+                fileTypes={[".png", ".jpg"]}
+                base64={true}
+                handleFiles={handleFiles}
+              >
+                <Button color='primary' variant='outlined'>
+                  <FileUploadIcon/>
+                </Button>
+              </ReactFileReader>
+            </ThemeProvider>
+          </Stack>
+          {photo && (
+              <div style={{ display: 'flex', justifyContent: 'center', marginTop: '10px' }}>
+                <div style={{ position: 'relative', display: 'inline-block' }}>
+                  <img src={photo} alt="Photo Preview" style={{ width: 'auto', height: '100px'}} onClick={handleOpenPhoto}/>
+                    <IconButton
+                      onClick={handleCancelFile}
+                      style={{
+                        position: 'absolute',
+                        top: '-10px',
+                        right: '-10px',
+                        // backgroundColor: 'white',
+                        padding: '2px',
+                      }}
+                    >
+                      <HighlightOffIcon style={{ fontSize: '30px' }} />
+                    </IconButton>
+                </div>
+                
+              </div>
+            )}
+          <ThemeProvider theme={orange_theme}>
+            <Button
+                variant="outlined"
+                color='primary'
+                disabled={itemName === ''}
+                onClick={()=>{
+                  changeItemCount(itemName, itemCount)
+                  setItemName('')
+                  setItemCount(1)
+                  handleCloseForm()
+                }}
+              >
+                Update
             </Button>
+          </ThemeProvider>
         </StyledPopUP>
       </Modal>
 
@@ -254,7 +324,7 @@ export default function Home() {
           width='70%'
           height='90%'
           bgcolor='white' 
-          border='2px solid #e8b40a' 
+          border='5px solid #e8b40a' 
           boxShadow={24} //p={4} 
           display={'flex'} 
           flexDirection={'column'} 
@@ -271,28 +341,31 @@ export default function Home() {
               <Camera ref={camera} numberOfCamerasCallback={setNumberOfCameras} />
             </Box>
             <Stack direction='row' spacing={2} justifyContent='space-evenly'>
+            <ThemeProvider theme={orange_theme}> 
               <Button 
                 fullWidth
                 variant='outlined' 
+                color='primary'
                 onClick={() => {
                   const itemPhoto = camera.current.takePhoto();
                   setPhoto(itemPhoto);
                   handleOpenPhoto();
                   handleCloseCamera();
-              }}
-              sx={{px: 3}}> 
+              }}> 
                 <CameraEnhanceIcon/> <StyledCameraText sx={{ml: 5}}>Take a Photo</StyledCameraText>
               </Button>
               <Button 
                 fullWidth
                 variant='outlined' 
+                color='primary'
                 disabled={numberOfCameras <= 1}
                 onClick={() => {
                 camera.current.switchCamera();
-                }}
-                sx={{px: 3}}> 
+                }}> 
                 <FlipCameraIosIcon/> <StyledCameraText sx={{ml: 5}}>Flip Camera</StyledCameraText>
               </Button>
+            </ThemeProvider>
+              
             </Stack>
           </Stack>
         </StyledPopUP>
@@ -305,13 +378,13 @@ export default function Home() {
           top='50%' 
           left='50%' 
           bgcolor='white' 
-          border='2px solid #e8b40a' 
+          border='5px solid #e8b40a' 
           boxShadow={24} 
           display={'flex'} 
           sx={{
             transform: 'translate(-50%, -50%)'
           }}>
-          <img src={photo} alt='Photo preview' />
+          <img src={photo} alt='Photo preview' onClick={handleClosePhoto}/>
         </StyledPopUP>
       </Modal>
       
@@ -324,7 +397,8 @@ export default function Home() {
             }} 
         style={{display: 'inline-block'}}>
         
-        <Image src={BeeHiveImg} alt='site_logo' height={60} width={60} style={{marginTop: '10px'}}/>
+        <Image src={BeeHiveImg} alt='site_logo' height={60} width={60} style={{marginTop: '10px', marginLeft: '10px'}}/>
+        {/* <Stack display={'flex'} flexDirection={'row'} alignItems={'flex-end'}> */}
         <Typography 
           variant="h2" 
           color='#FFD700' 
@@ -332,7 +406,9 @@ export default function Home() {
           paddingX={2}>
             Hive.it
         </Typography>
-        <Typography variant="p" color='#FFD700'>Inventory Management System</Typography>
+        <StyledSubtitleText variant='p' color='#FFD700'>Inventory Management System</StyledSubtitleText>
+        {/* </Stack> */}
+        
         <StyledImage src={BeeHiveOutline}/>
       </AppBar>
 
@@ -367,9 +443,11 @@ export default function Home() {
         {/* <Button variant='outlined' onClick={() => searchInventory(searchName)} sx={{ marginRight: 5}}>
           <SearchIcon/>
         </Button> */}
-        <Button variant='outlined' onClick={() => handleOpenCamera()}>
-          <PhotoCameraIcon />
-        </Button>
+        {/* <ThemeProvider theme={orange_theme}>
+          <Button color='primary' variant='outlined' onClick={() => handleOpenCamera()}>
+            <PhotoCameraIcon />
+          </Button>
+        </ThemeProvider> */}
       </Box>
 
       <StyledPaper sx={{ width: '80%', overflow: 'hidden'}} elevation={10}>
@@ -477,17 +555,20 @@ export default function Home() {
           }
         </Stack>
       </Box> */}
-
-      <Button
+      <ThemeProvider theme={orange_theme}>
+        <Button
         variant="outlined"
-        sx={{marginTop: 1}}
+        color='primary'
+        sx={{marginTop: 1, px: '20px'}}
         // paddingX='10px'
         onClick={() => {
           handleOpenForm()
         }}
-      >
-        Update Inventory
-      </Button>
+        >
+          Update Inventory
+        </Button>
+      </ThemeProvider>
+      
 
       <Box sx={{marginTop : '10%', bottom: 0}} bgcolor={orange[200]} display={'flex'} width={'100vw'} justifyContent='center'>
         <Typography>Copyright © 2024 Weijia Xiao. All rights reserved.</Typography> 
@@ -532,6 +613,22 @@ const orange_pallete = {
   700: '#f5c117',
   800: '#e8b40a',
 };
+
+const createColor = (mainColor) => createTheme()({ color: { main: mainColor } });
+const orange_theme = createTheme({
+  palette: {
+    // light: '#fdf5da',
+    // secondary: '#fae291',
+    // main: '#f9db79',
+    // primary: '#f8d560',
+    // orange_500: '#f7ce48',
+    // orange_600: '#f6c730',
+    // dark: '#f5c117',
+    // orange_800: '#e8b40a',
+    // contrastText: '#fff',
+    primary: orange
+  },
+});
 
 const grey = {
   50: '#F3F6F9',
@@ -632,7 +729,7 @@ const StyledButton = styled('button')(
 // make the background color in the table different for odd number and even number rows
 const StyledTableRow = styled(TableRow)(({ theme }) => ({
   "&:hover": {
-    backgroundColor: "#e0a548 !important"
+    backgroundColor: "#f5c67d !important"
   },
   '&:nth-of-type(odd)': {
     backgroundColor: "#f5efdd",
@@ -646,10 +743,6 @@ const StyledTableRow = styled(TableRow)(({ theme }) => ({
 const StyledTextField = styled(TextField)(({ theme }) => ({
   '&:hover fieldset' : {
     borderColor: orange[400]
-  },
-
-  '&:active fieldset' : {
-    borderColor: "#e8b40a !important"
   },
 
   '&:focus fieldset' : {
@@ -707,3 +800,11 @@ const StyledCameraText = styled(Typography)(({ theme }) => ({
   }
 }));
 
+const StyledSubtitleText = styled(Typography)(({ theme }) => ({
+  [theme.breakpoints.down("sm")]: {
+    display: 'block',
+    marginLeft: '90px',
+    marginTop: '0px',
+    paddingTop: '0px'
+  }
+}));
