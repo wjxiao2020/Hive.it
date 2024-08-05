@@ -1,7 +1,8 @@
 'use client'
 import Image from "next/image";
 import { useState, useEffect, forwardRef, useRef } from "react";
-import { firestore } from "@/firebase";
+import { firestore, firebase_storage } from "@/firebase";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { Box, Button, Modal, Stack, TextField, Typography, AppBar, InputAdornment, createTheme, ThemeProvider } from "@mui/material";
 import { Unstable_NumberInput as BaseNumberInput } from '@mui/base/Unstable_NumberInput';
 import { styled } from '@mui/system';
@@ -57,6 +58,7 @@ export default function Home() {
   const camera = useRef(null);
   const [numberOfCameras, setNumberOfCameras] = useState(0);
   const [photo, setPhoto] = useState(null);
+  const [photoFile, setPhotoFile] = useState(null);
   const [openPhoto, setOpenPhoto] = useState(false);
 
   const handleChangePage = (event, newPage) => {
@@ -139,20 +141,35 @@ export default function Home() {
   const updateItem = async (item, count, photo) => {
     const docRef = doc(collection(firestore, 'inventory'), item.toLowerCase())
     const docSnap = await getDoc(docRef)
-
-    if (docSnap.exists()) {
-      const {quantity} = docSnap.data()
+    let fileUrl = null;
+    let photoName = null;
+    if (photo) {
+      photoName = photoFile.name;
+      const fileRef = ref(firebase_storage, `images/${photoName}`);
+      // const fileRef = storageRef.child(`images/${photoName}`);
+      // await fileRef.put(photo);
+      console.log(photo);
+      await uploadBytes(fileRef, photo);
+      fileUrl = await getDownloadURL(fileRef);
+    }
+      const quantity = docSnap.exists() ? docSnap.data().quantity : 0
       const total = quantity + count
+
       if (total > 0) {
-        await setDoc(docRef, {quantity: quantity + count, photo: photo})
+        const docData = { quantity: total };
+        if (photo) {
+          docData.photo_url = fileUrl;
+          docData.photo_name = photoName;
+        }
+        await setDoc(docRef, docData);
       } else {
-        await deleteDoc(docRef)
+        await deleteDoc(docRef);
       }
-    }
-    else {
-      await setDoc(docRef, {quantity: count, photo: photo})
-    }
+
     await updateInventory()
+    setItemName('')
+    setItemCount(1)
+    handleCloseForm()
   }
 
   // what is the least number to be added, or highest number that can be subtracted
@@ -176,18 +193,23 @@ export default function Home() {
   const handleClosePhoto = () => setOpenPhoto(false)
 
   const handleFiles = (files) => {
-    // console.log(files['base64']);
+    console.log(files);
     // setUrl(files.base64);
     // setPhoto(files[0]['name']);
     // handleOpenPhoto();
-    // const reader = new FileReader();
-    // reader.onloadend = () => {
-    //   setPhoto(reader.result);
-    // };
-    // reader.readAsDataURL(files['base64']);
-    if (files && files.base64) {
-      setPhoto(files.base64);
-    }
+    
+    const file = files[0];
+    setPhotoFile(file);
+    
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setPhoto(reader.result);
+    };
+    reader.readAsDataURL(file);
+    // if (files && files.base64) {
+    //   setPhoto(files.base64);
+    //   setPhotoFile(files.fileList[0])
+    // }
   };
 
   const handleCancelFile = () => {
@@ -268,7 +290,6 @@ export default function Home() {
               <Typography variant='p' sx={{mx: '5px'}}> or </Typography> 
               <ReactFileReader
                 fileTypes={[".png", ".jpg"]}
-                base64={true}
                 handleFiles={handleFiles}
               >
                 <Button color='primary' variant='outlined'>
@@ -301,12 +322,9 @@ export default function Home() {
             <Button
                 variant="outlined"
                 color='primary'
-                disabled={itemName === ''}
+                disabled={itemName === '' ||(itemCount === 0 && !photo)}
                 onClick={()=>{
-                  changeItemCount(itemName, itemCount)
-                  setItemName('')
-                  setItemCount(1)
-                  handleCloseForm()
+                  updateItem(itemName, itemCount, photo)
                 }}
               >
                 Update
@@ -347,7 +365,7 @@ export default function Home() {
                 variant='outlined' 
                 color='primary'
                 onClick={() => {
-                  const itemPhoto = camera.current.takePhoto();
+                  const itemPhoto = camera.current.takePhoto(); // blob 
                   setPhoto(itemPhoto);
                   handleOpenPhoto();
                   handleCloseCamera();
@@ -409,7 +427,7 @@ export default function Home() {
         <StyledSubtitleText variant='p' color='#FFD700'>Inventory Management System</StyledSubtitleText>
         {/* </Stack> */}
         
-        <StyledImage src={BeeHiveOutline}/>
+        <StyledImage src={BeeHiveOutline} alt='background bee hive'/>
       </AppBar>
 
       <Box marginTop={20} width='80vw' alignItems={'center'} justifyContent={'center'} display={'flex'}>
@@ -480,10 +498,10 @@ export default function Home() {
                       </TableCell>
                       <TableCell>
                         <Stack direction='row' spacing={2} justifyContent={'flex-end'}>
-                          <StyledButton onClick={() => changeItemCount(name, 1)}>
+                          <StyledButton onClick={() => updateItem(name, 1, null)}>
                             <AddIcon/>
                           </StyledButton>
-                          <StyledButton onClick={() => changeItemCount(name, -1)}>
+                          <StyledButton onClick={() => updateItem(name, -1, null)}>
                             <RemoveIcon/>
                           </StyledButton>
                           <StyledButton onClick={() => deleteItem(name)}>
@@ -747,7 +765,7 @@ const StyledTextField = styled(TextField)(({ theme }) => ({
 
   '&:focus fieldset' : {
     borderColor: orange[200],
-    boxShadow: "0 0 0 3px ${theme.palette.mode === 'dark' ? orange[700] : orange[200]}"
+    boxShadow: `0 0 0 3px ${theme.palette.mode === 'dark' ? orange[700] : orange[200]}`
   }, 
   '& .MuiOutlinedInput-root': {
     '& fieldset': {
@@ -765,6 +783,7 @@ const StyledTextField = styled(TextField)(({ theme }) => ({
 // AppBar background image of bee hive outline
 const StyledImage = styled(Image)(({ theme }) => ({
   height: '100%',
+  width: 'auto',
   position: 'absolute',
   right: -10,
   top: 0,
