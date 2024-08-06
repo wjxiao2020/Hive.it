@@ -3,7 +3,7 @@ import Image from "next/image";
 import { useState, useEffect, forwardRef, useRef } from "react";
 import { firestore, firebase_storage } from "@/firebase";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { Box, Button, Modal, Stack, TextField, Typography, AppBar, InputAdornment, createTheme, ThemeProvider } from "@mui/material";
+import { Box, Button, Modal, Stack, TextField, Typography, AppBar, InputAdornment, createTheme, ThemeProvider, Popper } from "@mui/material";
 import { Unstable_NumberInput as BaseNumberInput } from '@mui/base/Unstable_NumberInput';
 import { styled } from '@mui/system';
 import IconButton from '@mui/material/IconButton';
@@ -59,7 +59,24 @@ export default function Home() {
   const [numberOfCameras, setNumberOfCameras] = useState(0);
   const [photo, setPhoto] = useState(null);
   const [photoFile, setPhotoFile] = useState(null);
+  const [photoPreview, setPhotoPreview] = useState(null);
   const [openPhoto, setOpenPhoto] = useState(false);
+
+  const [anchorEl, setAnchorEl] = useState(null);
+  const [hoveredItem, setHoveredItem] = useState(null);
+
+  const handleMouseEnterRow = (event, item) => {
+    console.log(item);
+    if (item.photo_url) {
+      setAnchorEl(event.currentTarget);
+      setHoveredItem(item);
+    }
+  };
+
+  const handleMouseLeaveRow = () => {
+    setAnchorEl(null);
+    setHoveredItem(null);
+  };
 
   const handleChangePage = (event, newPage) => {
     setPage(newPage);
@@ -106,7 +123,7 @@ export default function Home() {
     const searchResults = []
     fullInventory.forEach((item) => {
       console.log(item);
-      if (item.name.includes(searchString)) {
+      if (item.name.includes(searchString.toLowerCase())) {
         searchResults.push(item)
       }
     })
@@ -138,30 +155,37 @@ export default function Home() {
     await updateInventory()
   }
 
-  const updateItem = async (item, count, photo) => {
-    const docRef = doc(collection(firestore, 'inventory'), item.toLowerCase())
+  const updateItem = async (name, quantityChange, itemPhoto, itemPhotoFile) => {
+    const docRef = doc(collection(firestore, 'inventory'), name.toLowerCase())
     const docSnap = await getDoc(docRef)
     let fileUrl = null;
     let photoName = null;
-    if (photo) {
-      photoName = photoFile.name;
+    let photoType = null;
+    if (itemPhoto) {
+      if (itemPhotoFile) {
+        photoName = itemPhotoFile.name;
+        photoType = itemPhotoFile.type; // 'image/png' or 'image/jpg'
+      } else { // photo took by camera
+        photoName = name;
+        photoType = 'image/jpeg';
+      }
       const fileRef = ref(firebase_storage, `images/${photoName}`);
-      // const fileRef = storageRef.child(`images/${photoName}`);
-      // await fileRef.put(photo);
-      console.log(photo);
-      await uploadBytes(fileRef, photo);
+      const metadata = {
+        contentType: photoType, // avoid firebase storage link to automatic download the image
+      };
+      await uploadBytes(fileRef, itemPhoto, metadata);
       fileUrl = await getDownloadURL(fileRef);
     }
       const quantity = docSnap.exists() ? docSnap.data().quantity : 0
-      const total = quantity + count
+      const total = quantity + quantityChange
 
       if (total > 0) {
         const docData = { quantity: total };
-        if (photo) {
+        if (itemPhoto) {
           docData.photo_url = fileUrl;
           docData.photo_name = photoName;
         }
-        await setDoc(docRef, docData);
+        await setDoc(docRef, docData, { merge: true });
       } else {
         await deleteDoc(docRef);
       }
@@ -169,6 +193,9 @@ export default function Home() {
     await updateInventory()
     setItemName('')
     setItemCount(1)
+    setPhoto(null)
+    setPhotoFile(null)
+    setPhotoPreview(null)
     handleCloseForm()
   }
 
@@ -199,13 +226,15 @@ export default function Home() {
     // handleOpenPhoto();
     
     const file = files[0];
+    setPhoto(file);
     setPhotoFile(file);
     
     const reader = new FileReader();
     reader.onloadend = () => {
-      setPhoto(reader.result);
+      setPhotoPreview(reader.result);
     };
     reader.readAsDataURL(file);
+
     // if (files && files.base64) {
     //   setPhoto(files.base64);
     //   setPhotoFile(files.fileList[0])
@@ -214,6 +243,18 @@ export default function Home() {
 
   const handleCancelFile = () => {
     setPhoto(null);
+    setPhotoFile(null);
+    setPhotoPreview(null);
+  };
+
+  const base64ToBlob = (base64Data, contentType) => {
+    const byteCharacters = atob(base64Data.split(',')[1]);
+    const byteNumbers = new Array(byteCharacters.length);
+    for (let i = 0; i < byteCharacters.length; i++) {
+      byteNumbers[i] = byteCharacters.charCodeAt(i);
+    }
+    const byteArray = new Uint8Array(byteNumbers);
+    return new Blob([byteArray], { type: contentType });
   };
 
 
@@ -298,10 +339,10 @@ export default function Home() {
               </ReactFileReader>
             </ThemeProvider>
           </Stack>
-          {photo && (
+          {photoPreview && (
               <div style={{ display: 'flex', justifyContent: 'center', marginTop: '10px' }}>
                 <div style={{ position: 'relative', display: 'inline-block' }}>
-                  <img src={photo} alt="Photo Preview" style={{ width: 'auto', height: '100px'}} onClick={handleOpenPhoto}/>
+                  <img src={photoPreview} alt="Photo Preview" style={{ width: 'auto', height: '100px'}} onClick={handleOpenPhoto}/>
                     <IconButton
                       onClick={handleCancelFile}
                       style={{
@@ -324,7 +365,7 @@ export default function Home() {
                 color='primary'
                 disabled={itemName === '' ||(itemCount === 0 && !photo)}
                 onClick={()=>{
-                  updateItem(itemName, itemCount, photo)
+                  updateItem(itemName, itemCount, photo, photoFile)
                 }}
               >
                 Update
@@ -365,8 +406,9 @@ export default function Home() {
                 variant='outlined' 
                 color='primary'
                 onClick={() => {
-                  const itemPhoto = camera.current.takePhoto(); // blob 
-                  setPhoto(itemPhoto);
+                  const itemPhoto = camera.current.takePhoto(); // base64 jpeg 
+                  setPhoto(base64ToBlob(itemPhoto, 'image/jpeg'));
+                  setPhotoPreview(itemPhoto);
                   handleOpenPhoto();
                   handleCloseCamera();
               }}> 
@@ -391,7 +433,7 @@ export default function Home() {
 
       {/* pop up window for showing the photo taken */}
       <Modal open={openPhoto} onClose={handleClosePhoto}>
-        <StyledPopUP 
+        <Box 
           position='absolute' 
           top='50%' 
           left='50%' 
@@ -402,8 +444,8 @@ export default function Home() {
           sx={{
             transform: 'translate(-50%, -50%)'
           }}>
-          <img src={photo} alt='Photo preview' onClick={handleClosePhoto}/>
-        </StyledPopUP>
+          <img src={photoPreview} alt='Photo preview' onClick={handleClosePhoto} height='300' width='auto'/>
+        </Box>
       </Modal>
       
       <AppBar 
@@ -487,24 +529,29 @@ export default function Home() {
             <TableBody>
               {inventory
                 .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                .map(({name, quantity}) => {
+                .map((item) => {
                   return (
-                    <StyledTableRow hover={true} key={name}>
+                    <StyledTableRow 
+                      hover={true} 
+                      key={item.name}
+                      onMouseEnter={(event) => handleMouseEnterRow(event, item)}
+                      onMouseLeave={handleMouseLeaveRow}>
                       <TableCell>
-                        <Typography variant="body1" color='#333'>{name.charAt(0).toUpperCase() + name.slice(1)}</Typography>
+                        <Typography variant="body1" color='#333'>{item.name.charAt(0).toUpperCase() + item.name.slice(1)}</Typography>
                       </TableCell>
                       <TableCell align="center">
-                        <Typography variant="body1" color='#333'>{quantity}</Typography>
+                        <Typography variant="body1" color='#333'>{item.quantity}</Typography>
                       </TableCell>
                       <TableCell>
                         <Stack direction='row' spacing={2} justifyContent={'flex-end'}>
-                          <StyledButton onClick={() => updateItem(name, 1, null)}>
+                          <StyledButton 
+                            onClick={() => {updateItem(item.name, 1, null, null)}}>
                             <AddIcon/>
                           </StyledButton>
-                          <StyledButton onClick={() => updateItem(name, -1, null)}>
+                          <StyledButton onClick={() => {updateItem(item.name, -1, null, null)}}>
                             <RemoveIcon/>
                           </StyledButton>
-                          <StyledButton onClick={() => deleteItem(name)}>
+                          <StyledButton onClick={() => deleteItem(item.name)}>
                             <DeleteForeverIcon/>
                           </StyledButton>
                         </Stack>
@@ -525,7 +572,16 @@ export default function Home() {
         onRowsPerPageChange={handleChangeRowsPerPage}
       />
     </StyledPaper>
-
+    {hoveredItem && (
+        <Popper
+          open={Boolean(anchorEl)}
+          anchorEl={anchorEl}
+          placement="top-start"
+          style={{ zIndex: 10 }}
+        >
+          <img src={hoveredItem.photo_url} alt={hoveredItem.name} width='100' height='100' />
+        </Popper>
+    )}
       {/* <Box border='1px solid #333'>
         <Stack
           width='80vw'
@@ -755,7 +811,6 @@ const StyledTableRow = styled(TableRow)(({ theme }) => ({
   '&:nth-of-type(even)': {
     backgroundColor: "#f9f9f9",
   },
-  
 }));
 
 const StyledTextField = styled(TextField)(({ theme }) => ({
