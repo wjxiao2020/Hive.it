@@ -66,7 +66,6 @@ export default function Home() {
   const [hoveredItem, setHoveredItem] = useState(null);
 
   const handleMouseEnterRow = (event, item) => {
-    console.log(item);
     if (item.photo_url) {
       setAnchorEl(event.currentTarget);
       setHoveredItem(item);
@@ -122,7 +121,6 @@ export default function Home() {
 
     const searchResults = []
     fullInventory.forEach((item) => {
-      console.log(item);
       if (item.name.includes(searchString.toLowerCase())) {
         searchResults.push(item)
       }
@@ -220,7 +218,6 @@ export default function Home() {
   const handleClosePhoto = () => setOpenPhoto(false)
 
   const handleFiles = (files) => {
-    console.log(files);
     // setUrl(files.base64);
     // setPhoto(files[0]['name']);
     // handleOpenPhoto();
@@ -233,7 +230,7 @@ export default function Home() {
     reader.onloadend = () => {
       setPhotoPreview(reader.result);
     };
-    reader.readAsDataURL(file);
+    reader.readAsDataURL(file); // base63
 
     // if (files && files.base64) {
     //   setPhoto(files.base64);
@@ -456,14 +453,13 @@ export default function Home() {
               background: 'linear-gradient(to right, #000000, #feba07)'
             }} 
         style={{display: 'inline-block'}}>
-        
-        <Image src={BeeHiveImg} alt='site_logo' height={60} width={60} style={{marginTop: '10px', marginLeft: '10px'}}/>
+        <Image src={BeeHiveImg} alt='site_logo' height={50} width={50} style={{marginTop: '15px', marginLeft: '10px'}}/>
         {/* <Stack display={'flex'} flexDirection={'row'} alignItems={'flex-end'}> */}
         <Typography 
-          variant="h2" 
+          variant="h3" 
           color='#FFD700' 
           style={{display: 'inline-block'}} 
-          paddingX={2}>
+          paddingX={1}>
             Hive.it
         </Typography>
         <StyledSubtitleText variant='p' color='#FFD700'>Inventory Management System</StyledSubtitleText>
@@ -576,10 +572,10 @@ export default function Home() {
         <Popper
           open={Boolean(anchorEl)}
           anchorEl={anchorEl}
-          placement="top-start"
+          placement="left"
           style={{ zIndex: 10 }}
         >
-          <img src={hoveredItem.photo_url} alt={hoveredItem.name} width='100' height='100' />
+          <img src={hoveredItem.photo_url} alt={hoveredItem.name} width='100' height='auto' border='5px solid #e8b40a'/>
         </Popper>
     )}
       {/* <Box border='1px solid #333'>
@@ -633,7 +629,7 @@ export default function Home() {
         <Button
         variant="outlined"
         color='primary'
-        sx={{marginTop: 1, px: '20px'}}
+        sx={{marginTop: 1, px: '20px', borderColor: '#1C2025', borderWidth: '1px'}}
         // paddingX='10px'
         onClick={() => {
           handleOpenForm()
@@ -877,7 +873,7 @@ const StyledCameraText = styled(Typography)(({ theme }) => ({
 const StyledSubtitleText = styled(Typography)(({ theme }) => ({
   [theme.breakpoints.down("sm")]: {
     display: 'block',
-    marginLeft: '90px',
+    marginLeft: '70px',
     marginTop: '0px',
     paddingTop: '0px'
   }
