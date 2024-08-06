@@ -87,6 +87,7 @@ export default function Home() {
   };
 
   const updateInventory = async () => {
+    // console.log('updateInventory called');
     const snapshot = query(collection(firestore, 'inventory'))
     const docs = await getDocs(snapshot)
     const inventoryList = []
@@ -105,20 +106,6 @@ export default function Home() {
   }
 
   const searchInventory = async (searchString) => {
-    // const inventoryRef = collection(firestore, 'inventory')
-    // const searchQuery = query(inventoryRef, where('__name__', '==', searchString.toLowerCase()))
-    
-    // const docs = await getDocs(searchQuery)
-    // const searchResults = []
-    
-    // docs.forEach((doc) => {
-    //   console.log("found 1");
-    //   searchResults.push({
-    //     name: doc.id,
-    //     ...doc.data()
-    //   })
-    // })
-
     const searchResults = []
     fullInventory.forEach((item) => {
       if (item.name.includes(searchString.toLowerCase())) {
@@ -144,6 +131,7 @@ export default function Home() {
   }
 
   const deleteItem = async (item) => {
+    // console.log('deleteItem called');
     const docRef = doc(collection(firestore, 'inventory'), item)
     const docSnap = await getDoc(docRef)
 
@@ -154,6 +142,8 @@ export default function Home() {
   }
 
   const updateItem = async (name, quantityChange, itemPhoto, itemPhotoFile) => {
+    // console.log('updateItem called');
+    // getDoc sends 2 POST, first to set up a real-time listener to retrieve information, second to remove the listener
     const docRef = doc(collection(firestore, 'inventory'), name.toLowerCase())
     const docSnap = await getDoc(docRef)
     let fileUrl = null;
@@ -194,7 +184,6 @@ export default function Home() {
     setPhoto(null)
     setPhotoFile(null)
     setPhotoPreview(null)
-    handleCloseForm()
   }
 
   // what is the least number to be added, or highest number that can be subtracted
@@ -203,7 +192,7 @@ export default function Home() {
     return item ? -item['quantity']: 1;
   }
 
-  // call the function whever the dependency list (second parameter)changes
+  // call the function whever the dependency list (second parameter) changes
   // when an empty list is given, useEffect will only call the function once
   // at the very beginning when the page loads
   useEffect(() => {
@@ -288,7 +277,7 @@ export default function Home() {
           <Typography variant="h6"> Update Information of an Item </Typography>
           <Stack width='100%' direction='row' spacing={2} alignItems={'center'}>
             <Box width={200}>
-              <Typography variant="p"> Item Name* : </Typography>
+              <Typography variant="p"> Name* : </Typography>
             </Box>
             
             <StyledTextField
@@ -306,7 +295,7 @@ export default function Home() {
           </Stack>
           <Stack width='100%' direction='row' spacing={2} alignItems={'center'}>
             <Box width={200}>
-              <Typography variant="p"> Item Count : </Typography>
+              <Typography variant="p"> Count : </Typography>
             </Box>
             
             <NumberInput
@@ -319,7 +308,7 @@ export default function Home() {
           </Stack>
           <Stack width='100%' direction='row' spacing={2} alignItems={'center'}>
             <Box width={200}>
-              <Typography variant="p"> Item Photo : </Typography>
+              <Typography variant="p"> Photo : </Typography>
             </Box>
             <ThemeProvider theme={orange_theme}>
               <Button color='primary' variant='outlined' onClick={() => handleOpenCamera()}>
@@ -363,6 +352,7 @@ export default function Home() {
                 disabled={itemName === '' ||(itemCount === 0 && !photo)}
                 onClick={()=>{
                   updateItem(itemName, itemCount, photo, photoFile)
+                  handleCloseForm()
                 }}
               >
                 Update
@@ -444,7 +434,7 @@ export default function Home() {
           <img src={photoPreview} alt='Photo preview' onClick={handleClosePhoto} height='300' width='auto'/>
         </Box>
       </Modal>
-      
+
       <AppBar 
         position="fixed"
         // className={classes.header}
@@ -627,21 +617,27 @@ export default function Home() {
       </Box> */}
       <ThemeProvider theme={orange_theme}>
         <Button
-        variant="outlined"
-        color='primary'
-        sx={{marginTop: 1, px: '20px', borderColor: '#1C2025', borderWidth: '1px'}}
-        // paddingX='10px'
-        onClick={() => {
-          handleOpenForm()
-        }}
+          variant="outlined"
+          color='primary'
+          sx={{marginTop: 1, px: '20px', borderColor: '#1C2025', borderWidth: '1px'}}
+          // paddingX='10px'
+          onClick={() => {
+            handleOpenForm()
+          }}
         >
           Update Inventory
         </Button>
       </ThemeProvider>
-      
 
-      <Box sx={{marginTop : '10%', bottom: 0}} bgcolor={orange[200]} display={'flex'} width={'100vw'} justifyContent='center'>
-        <Typography>Copyright © 2024 Weijia Xiao. All rights reserved.</Typography> 
+      <Box 
+        sx={{
+          display: 'flex',
+          flexDirection: 'column',
+          minHeight: '50vh',
+        }}>
+        <Box sx={{marginTop : 'auto', bottom: 0}} bgcolor={orange[200]} display={'flex'} width={'100vw'} justifyContent='center'>
+          <Typography>Copyright © 2024 Weijia Xiao. All rights reserved.</Typography> 
+        </Box>
       </Box>
     </Box>
   );
@@ -741,7 +737,7 @@ const StyledInput = styled('input')(
   padding: 10px 12px;
   outline: 0;
   min-width: 0;
-  width: 10rem;
+  width: 60%;
   text-align: center;
 
   &:hover {
