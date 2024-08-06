@@ -3,7 +3,7 @@ import Image from "next/image";
 import { useState, useEffect, forwardRef, useRef } from "react";
 import { firestore, firebase_storage } from "@/firebase";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { Box, Button, Modal, Stack, TextField, Typography, AppBar, InputAdornment, createTheme, ThemeProvider, Popper } from "@mui/material";
+import { Box, Button, Modal, Stack, TextField, Typography, AppBar, InputAdornment, createTheme, ThemeProvider, Popper, useMediaQuery } from "@mui/material";
 import { Unstable_NumberInput as BaseNumberInput } from '@mui/base/Unstable_NumberInput';
 import { styled } from '@mui/system';
 import IconButton from '@mui/material/IconButton';
@@ -64,6 +64,19 @@ export default function Home() {
 
   const [anchorEl, setAnchorEl] = useState(null);
   const [hoveredItem, setHoveredItem] = useState(null);
+
+  const theme = createTheme();
+
+  const [photoPlacement, setPhotoPlacement] = useState('left');
+  const smallScreen = useMediaQuery(theme.breakpoints.down('sm'));
+
+  useEffect(() => {
+    if (smallScreen) {
+      setPhotoPlacement('top-start');
+    } else {
+      setPhotoPlacement('left');
+    }
+  }, [smallScreen]);
 
   const handleMouseEnterRow = (event, item) => {
     if (item.photo_url) {
@@ -562,7 +575,7 @@ export default function Home() {
         <Popper
           open={Boolean(anchorEl)}
           anchorEl={anchorEl}
-          placement="left"
+          placement= {photoPlacement}
           style={{ zIndex: 10 }}
         >
           <img src={hoveredItem.photo_url} alt={hoveredItem.name} width='100' height='auto' border='5px solid #e8b40a'/>
