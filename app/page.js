@@ -68,13 +68,16 @@ export default function Home() {
   const theme = createTheme();
 
   const [photoPlacement, setPhotoPlacement] = useState('left');
+  const [searchBarWidth, setSearchBarWidth] = useState('60%');
   const smallScreen = useMediaQuery(theme.breakpoints.down('sm'));
 
   useEffect(() => {
     if (smallScreen) {
       setPhotoPlacement('top-start');
+      setSearchBarWidth('100%');
     } else {
       setPhotoPlacement('left');
+      setSearchBarWidth('60%');
     }
   }, [smallScreen]);
 
@@ -474,7 +477,7 @@ export default function Home() {
       <Box marginTop={20} width='80vw' alignItems={'center'} justifyContent={'center'} display={'flex'}>
         <StyledTextField
           variant='outlined'
-          sx={{ marginRight: 2, width: '60%' }}
+          sx={{ marginRight: 2, width: searchBarWidth }}
           size="small"
           label="Search"
           placeholder="Enter item name here ..."
