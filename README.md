@@ -13,16 +13,27 @@ Hive.it provides different ways to manage the item counts, aiming for an easy br
 
 There is always a way that suits you the best, and the updates will show up immediately without the need to refresh the page!
 
-![update form](public/hive_it_update.png)
+<p align="center">
+    <img src="public/hive_it_update.png" alt="update form" width="90%"/>
+</p>
 
 ### Easy Search
-Type some letters and press Enter! Now you can see all items with names containing what you have typed! You don't have to worry about upper-lower-case mess. I got you covered ;) 
-![search](public/hive_it_search.png)
+Type some letters and press Enter! Now you can see all items with names containing what you have typed! You don't have to worry about upper-lower-case mess. I've got you covered ;) 
+
+<p align="center">
+    <img src="public/hive_it_search.png" alt="search" width="90%"/>
+</p>
 
 ### See the Items
-Take a picture directly on Hive.it or upload a photo you already have of an item. When you hover over the table row showing that item's information, you will see its photo popping up as well!
-![show photo](public/hive_it_show_photo.png)
+Take a picture directly on Hive.it or upload a photo you already have of an item. When you hover over the table row showing that item's information, you will see its photo popping up!
+
+<p align="center">
+    <img src="public/hive_it_show_photo.png" alt="show photo" width="90%"/>
+</p>
 
 ### Neat Naming and Ordering
-The first letter in an item name is automatically capitalized and the table is in the alphabetical order! Looking so neat and it's so easy to find what you are looking for!
-![page](public/have_it_front_page.png)
+The item names are automatically capitalized and the record is in alphabetical order! Looking so neat and so easy to find what you are looking for!!
+
+<p align="center">
+    <img src="public/have_it_front_page.png" alt="main page" width="90%"/>
+</p>
